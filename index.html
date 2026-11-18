@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DSR Input Lokal</title>
+<style>
+  *{box-sizing:border-box;font-family:Arial,sans-serif}
+  body{margin:0;background:#f0f2f5;padding:10px}
+  .card{background:#fff;border-radius:10px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+  h3{margin:0 0 10px;font-size:15px;color:#1a3a6b;border-bottom:2px solid #1a3a6b;padding-bottom:5px}
+  label{display:block;font-size:12px;color:#555;margin:8px 0 3px}
+  input,select{width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;font-size:14px}
+  input[type=number]{text-align:right}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 10px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:5px;border:1px solid #ddd;text-align:center}
+  th{background:#eaf0fa}
+  .btn{width:100%;padding:13px;background:#1a6b1a;color:#fff;border:0;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer;margin-top:8px}
+  .btn-outline{background:#fff;border:2px solid #1a3a6b;color:#1a3a6b}
+  .btn-outline:hover{background:#eaf0fa}
+  .btn-blue{background:#1a3a6b}
+  .btn-blue:hover{background:#0f274f}
+  #msg{padding:10px;border-radius:6px;margin-top:10px;display:none;font-size:14px}
+  .ok{background:#d4edda;color:#155724}.err{background:#f8d7da;color:#721c24}
+  .total{font-size:18px;font-weight:bold;color:#1a3a6b;text-align:right;padding:8px}
+  .login{max-width:340px;margin:60px auto}
+  .hidden{display:none}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:999;display:none;align-items:center;justify-content:center}
+  .modal{background:#fff;border-radius:12px;padding:20px;max-width:500px;width:95%;max-height:90vh;overflow-y:auto}
+  .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}
+  .modal-title{font-size:18px;font-weight:bold;color:#1a3a6b}
+  .modal-close{background:none;border:none;font-size:24px;cursor:pointer;color:#999}
+  .modal-close:hover{color:#333}
+  .bank-section{margin-bottom:15px;padding-bottom:15px;border-bottom:1px solid #eee}
+  .bank-title{font-weight:bold;color:#1a3a6b;margin-bottom:8px;font-size:14px}
+  .ew-row{display:grid;grid-template-columns:1fr 2fr;gap:8px;margin-bottom:6px}
+  .ew-label{font-size:12px;color:#555;padding-top:8px}
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN ===== -->
+<div id="login" class="card login">
+  <h3>Login Kasir / Karyawan</h3>
+  <label>NIK</label>
+  <input id="nik" type="number" placeholder="Masukkan NIK" onkeydown="if(event.key==='Enter')doLogin()">
+  <button class="btn" onclick="doLogin()">Masuk</button>
+  <div id="loginMsg" class="err" style="display:none;margin-top:8px"></div>
+</div>
+
+<!-- ===== FORM ===== -->
+<div id="formWrap" class="hidden">
+  <div class="card">
+    <h3>Data Laporan Harian (EOS/DSR)</h3>
+    <div class="row2">
+      <div><label>Tanggal</label><input id="tanggal" type="date"></div>
+      <div><label>Counter</label>
+        <select id="counter"><option>C1</option><option>C2</option></select>
+      </div>
+    </div>
+    <div class="row2">
+      <div><label>Nama MP / Superior</label><input id="nama_mp" placeholder="Nama MP"></div>
+      <div><label>Kasir</label><input id="kasir_nama" disabled></div>
+    </div>
+    <input id="nik_hidden" type="hidden">
+  </div>
+
+  <div class="card">
+    <h3>Kas Tunai (jumlah lembar per pecahan)</h3>
+    <div class="grid">
+      <div><label>100</label><input class="k" data-i="0" type="number" min="0"></div>
+      <div><label>200</label><input class="k" data-i="1" type="number" min="0"></div>
+      <div><label>500</label><input class="k" data-i="2" type="number" min="0"></div>
+      <div><label>1.000</label><input class="k" data-i="3" type="number" min="0"></div>
+      <div><label>2.000</label><input class="k" data-i="4" type="number" min="0"></div>
+      <div><label>5.000</label><input class="k" data-i="5" type="number" min="0"></div>
+      <div><label>10.000</label><input class="k" data-i="6" type="number" min="0"></div>
+      <div><label>20.000</label><input class="k" data-i="7" type="number" min="0"></div>
+      <div><label>50.000</label><input class="k" data-i="8" type="number" min="0"></div>
+      <div><label>100.000</label><input class="k" data-i="9" type="number" min="0"></div>
+    </div>
+    <div class="total">Total Kas: <span id="totKas">0</span></div>
+  </div>
+
+  <div class="card">
+    <h3>EDC per Bank (Qty transaksi & Total Rupiah)</h3>
+    <table>
+      <tr><th>Bank</th><th>Qty</th><th>Total</th></tr>
+      <tr><td>BCA</td><td><input class="eq" data-b="BCA" data-f="q" type="number" min="0"></td>
+          <td><input class="et" data-b="BCA" data-f="t" type="number" min="0"></td></tr>
+      <tr><td>CIMB</td><td><input class="eq" data-b="CIMB" data-f="q" type="number" min="0"></td>
+          <td><input class="et" data-b="CIMB" data-f="t" type="number" min="0"></td></tr>
+      <tr><td>MANDIRI</td><td><input class="eq" data-b="MANDIRI" data-f="q" type="number" min="0"></td>
+          <td><input class="et" data-b="MANDIRI" data-f="t" type="number" min="0"></td></tr>
+      <tr><td>BRI</td><td><input class="eq" data-b="BRI" data-f="q" type="number" min="0"></td>
+          <td><input class="et" data-b="BRI" data-f="t" type="number" min="0"></td></tr>
+      <tr><td>BTN</td><td><input class="eq" data-b="BTN" data-f="q" type="number" min="0"></td>
+          <td><input class="et" data-b="BTN" data-f="t" type="number" min="0"></td></tr>
+      <tr><td>SHOPEE</td><td><input class="eq" data-b="SHOPEE" data-f="q" type="number" min="0"></td>
+          <td><input class="et" data-b="SHOPEE" data-f="t" type="number" min="0"></td></tr>
+      <tr><td>DANA</td><td><input class="eq" data-b="DANA" data-f="q" type="number" min="0"></td>
+          <td><input class="et" data-b="DANA" data-f="t" type="number" min="0"></td></tr>
+    </table>
+    <div class="total">Total EDC: <span id="totEdc">0</span></div>
+  </div>
+
+  <div class="card">
+    <h3>Kartu & E-Wallet</h3>
+    <div class="grid">
+      <div><label>BCA Card</label><input id="card_bca" type="number" min="0"></div>
+      <div><label>VISA</label><input id="card_visa" type="number" min="0"></div>
+      <div><label>Master</label><input id="card_master" type="number" min="0"></div>
+      <div><label>Debit + Maestro</label><input id="card_debit" type="number" min="0"></div>
+    </div>
+    <div style="margin-top:15px">
+      <button class="btn btn-outline" onclick="openEwModal()">E-Wallet (Klik untuk pilih)</button>
+      <div class="total" style="margin-top:8px">Total E-Wallet: <span id="totEw">0</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Lain-lain</h3>
+    <div class="grid">
+      <div><label>Cash In Drawer</label><input id="cash_drawer" type="number" min="0"></div>
+      <div><label>Safe Drop</label><input id="safe_drop" type="number" min="0"></div>
+      <div><label>Voucher</label><input id="voucher" type="number" min="0"></div>
+      <div><label>Selisih QRIS</label><input id="selisih_qris" type="number"></div>
+    </div>
+  </div>
+
+  <button class="btn btn-blue" onclick="downloadJSON()">DOWNLOAD JSON (untuk upload ke sheet)</button>
+  <div id="msg"></div>
+</div>
+
+<!-- MODAL E-WALLET -->
+<div id="ewModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Pilih E-Wallet</div>
+      <button class="modal-close" onclick="closeEwModal()">&times;</button>
+    </div>
+    <div class="bank-section">
+      <div class="bank-title">BCA</div>
+      <div class="ew-row"><div class="ew-label">E-Wallet BCA</div><input id="ew_bca" type="number" min="0"></div>
+      <div class="ew-row"><div class="ew-label">BCA Card (EDC BCA)</div><input id="ew_bca_card" type="number" min="0"></div>
+    </div>
+    <div class="bank-section">
+      <div class="bank-title">MANDIRI</div>
+      <div class="ew-row"><div class="ew-label">E-Wallet MANDIRI</div><input id="ew_mandiri" type="number" min="0"></div>
+      <div class="ew-row"><div class="ew-label">NPG Mandiri</div><input id="ew_mandiri_npg" type="number" min="0"></div>
+    </div>
+    <div class="bank-section">
+      <div class="bank-title">BRI</div>
+      <div class="ew-row"><div class="ew-label">E-Wallet BRI</div><input id="ew_bri" type="number" min="0"></div>
+    </div>
+    <button class="btn" onclick="closeEwModal()">Tutup</button>
+  </div>
+</div>
+
+<script>
+const DENOMS=[100,200,500,1000,2000,5000,10000,20000,50000,100000];
+const BANKS=['CIMB','BCA','MANDIRI','BRI','BTN','SHOPEE','DANA'];
+let userNik='', userNama='';
+
+window.onload=function(){
+  document.getElementById('tanggal').valueAsDate=new Date();
+  recalc();
+};
+document.querySelectorAll('input').forEach(i=>i.addEventListener('input',recalc));
+
+function fmt(n){return new Intl.NumberFormat('id-ID').format(Math.round(n||0));}
+function recalc(){
+  let tk=0;
+  document.querySelectorAll('.k').forEach(i=>{tk+=(+i.value||0)*DENOMS[+i.dataset.i];});
+  document.getElementById('totKas').textContent=fmt(tk);
+  let te=0;
+  document.querySelectorAll('.et').forEach(i=>{te+=(+i.value||0);});
+  document.getElementById('totEdc').textContent=fmt(te);
+  let tw=0;
+  ['ew_bca','ew_bca_card','ew_mandiri','ew_mandiri_npg','ew_bri'].forEach(id=>tw+=(+document.getElementById(id).value||0));
+  document.getElementById('totEw').textContent=fmt(tw);
+}
+
+function doLogin(){
+  const nik=document.getElementById('nik').value.trim();
+  if(!nik.length<6){showLogin('NIK harus 6 digit atau lebih');return;}
+  userNik=nik;userNama='Kasir';
+  document.getElementById('kasir_nama').value=userNama;
+  document.getElementById('nik_hidden').value=nik;
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('formWrap').classList.remove('hidden');
+}
+function showLogin(m){const e=document.getElementById('loginMsg');e.textContent=m;e.style.display='block';}
+
+function openEwModal(){document.getElementById('ewModal').style.display='flex';}
+function closeEwModal(){document.getElementById('ewModal').style.display='none';recalc();}
+
+function val(id){return document.getElementById(id).value;}
+function downloadJSON(){
+  const tgl=val('tanggal');
+  if(!tgl){showMsg('Tanggal harus diisi',false);return;}
+  const p={
+    tanggal:tgl,
+    counter:val('counter'),
+    nama_mp:val('nama_mp'),
+    nik:userNik,
+    kasir_nama:userNama,
+    cash_drawer:+val('cash_drawer')||0,
+    safe_drop:+val('safe_drop')||0,
+    voucher:+val('voucher')||0,
+    selisih_qris:+val('selisih_qris')||0,
+    ewallet_bca:+val('ew_bca')||0,
+    ewallet_bca_card:+val('ew_bca_card')||0,
+    ewallet_mandiri:+val('ew_mandiri')||0,
+    ewallet_mandiri_npg:+val('ew_mandiri_npg')||0,
+    ewallet_bri:+val('ew_bri')||0,
+    card_bca:+val('card_bca')||0,
+    card_visa:+val('card_visa')||0,
+    card_master:+val('card_master')||0,
+    card_debit:+val('card_debit')||0,
+    kas_qty:DENOMS.map((d,i)=>+document.querySelector('.k[data-i="'+i+'"]').value||0),
+    edc:{}
+  };
+  BANKS.forEach(b=>{
+    p.edc[b]={
+      q:+document.querySelector('.eq[data-b="'+b+'"][data-f="q"]').value||0,
+      t:+document.querySelector('.et[data-b="'+b+'"][data-f="t"]').value||0
+    };
+  });
+  const blob=new Blob([JSON.stringify(p,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='dsr-data-'+tgl+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showMsg('File JSON didownload: dsr-data-'+tgl+'.json',true);
+}
+function showMsg(t,ok){const m=document.getElementById('msg');m.textContent=t;
+  m.className=ok?'ok':'err';m.style.display='block';}
+</script>
+</body>
+</html>
